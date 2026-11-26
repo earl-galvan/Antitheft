@@ -1,0 +1,66 @@
+name: Antitheft
+version: "${version}"
+main: io.github.earlgalvan.antitheft.AntitheftPlugin
+description: Lock chests and other storage blocks against other players.
+author: earl-galvan
+api-version: '1.18'
+folia-supported: true
+
+commands:
+  lock:
+    description: Lock the block you are looking at, or manage its access list.
+    usage: /lock [add <player> | remove <player> | admin-unlock]
+    permission: antitheft.lock
+  unlock:
+    description: Unlock the block you are looking at.
+    usage: /unlock
+    permission: antitheft.unlock
+  lockinfo:
+    description: Show who owns the block you are looking at.
+    usage: /lockinfo
+    permission: antitheft.lockinfo
+  trust:
+    description: Give a player access to all of your locks.
+    usage: /trust <player>
+    permission: antitheft.trust
+  untrust:
+    description: Remove a player from your global trust list.
+    usage: /untrust <player>
+    permission: antitheft.untrust
+  trustlist:
+    description: List the players you trust.
+    usage: /trustlist
+    permission: antitheft.trustlist
+  antitheft:
+    description: Antitheft admin commands.
+    usage: /antitheft reload
+    permission: antitheft.reload
+
+permissions:
+  antitheft.lock:
+    description: Use /lock, /lock add and /lock remove.
+    default: true
+  antitheft.unlock:
+    description: Use /unlock.
+    default: true
+  antitheft.lockinfo:
+    description: Use /lockinfo.
+    default: true
+  antitheft.trust:
+    description: Use /trust.
+    default: true
+  antitheft.untrust:
+    description: Use /untrust.
+    default: true
+  antitheft.trustlist:
+    description: Use /trustlist.
+    default: true
+  antitheft.reload:
+    description: Use /antitheft reload.
+    default: op
+  antitheft.adminunlock:
+    description: Use /lock admin-unlock to remove anyone's lock.
+    default: op
+  antitheft.bypass:
+    description: Open and break any locked block.
+    default: op

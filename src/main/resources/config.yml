@@ -1,0 +1,63 @@
+# Lock a lockable block automatically when a player places it.
+# Off by default: players lock blocks themselves with /lock.
+auto-lock-on-place: false
+
+# Blocks that can be locked. Use Bukkit material names.
+# Names this server version does not know (e.g. COPPER_CHEST before 1.21.9) are skipped,
+# so one list works on every version from 1.18.2 to 26.x.
+# Note: a hopper only pulls items out of a locked block if the hopper itself is
+# locked by someone with access to that block. With auto-lock off, players /lock their own hoppers.
+lockable-blocks:
+  - CHEST
+  - TRAPPED_CHEST
+  - COPPER_CHEST
+  - EXPOSED_COPPER_CHEST
+  - WEATHERED_COPPER_CHEST
+  - OXIDIZED_COPPER_CHEST
+  - WAXED_COPPER_CHEST
+  - WAXED_EXPOSED_COPPER_CHEST
+  - WAXED_WEATHERED_COPPER_CHEST
+  - WAXED_OXIDIZED_COPPER_CHEST
+  - BARREL
+  - SHULKER_BOX
+  - WHITE_SHULKER_BOX
+  - ORANGE_SHULKER_BOX
+  - MAGENTA_SHULKER_BOX
+  - LIGHT_BLUE_SHULKER_BOX
+  - YELLOW_SHULKER_BOX
+  - LIME_SHULKER_BOX
+  - PINK_SHULKER_BOX
+  - GRAY_SHULKER_BOX
+  - LIGHT_GRAY_SHULKER_BOX
+  - CYAN_SHULKER_BOX
+  - PURPLE_SHULKER_BOX
+  - BLUE_SHULKER_BOX
+  - BROWN_SHULKER_BOX
+  - GREEN_SHULKER_BOX
+  - RED_SHULKER_BOX
+  - BLACK_SHULKER_BOX
+  - HOPPER
+  - DROPPER
+  - DISPENSER
+  - FURNACE
+  - SMOKER
+  - BLAST_FURNACE
+  - BREWING_STAND
+  - CRAFTER
+  - CHISELED_BOOKSHELF
+  - DECORATED_POT
+  - LECTERN
+  - JUKEBOX
+  - OAK_SHELF
+  - SPRUCE_SHELF
+  - BIRCH_SHELF
+  - JUNGLE_SHELF
+  - ACACIA_SHELF
+  - DARK_OAK_SHELF
+  - MANGROVE_SHELF
+  - CHERRY_SHELF
+  - PALE_OAK_SHELF
+  - BAMBOO_SHELF
+  - CRIMSON_SHELF
+  - WARPED_SHELF
+  - POPLAR_SHELF
