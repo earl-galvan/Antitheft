@@ -10,6 +10,11 @@ A server-side Minecraft plugin that lets players lock chests and other storage b
 - **Not supported:** Spigot and CraftBukkit. The plugin disables itself there with a message.
 - **Dependencies:** none besides the server.
 
+## Download
+**[⬇ Download antitheft-1.1.1.jar](https://github.com/earl-galvan/Antitheft/raw/main/downloads/antitheft-1.1.1.jar)** (32 KB)
+
+One jar for Paper, Purpur and Folia, Minecraft 1.18.2 – 26.3. Put it in your server's `plugins/` folder and restart. Players don't need to install anything.
+
 ## What it does
 - **Lock a block** with `/lock`, remove it with `/unlock`, see the owner with `/lockinfo`.
 - **Share one lock** with `/lock add <player>` and `/lock remove <player>`.
