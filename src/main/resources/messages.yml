@@ -1,5 +1,7 @@
 # MiniMessage format: https://docs.advntr.dev/minimessage/format.html
 # Leave a message empty ("") to not send it.
+# Messages missing from this file use the built-in text, so after an update you only need to add
+# the ones you want to change.
 prefix: "<dark_gray>[<gold>Antitheft</gold>]</dark_gray> "
 
 no-permission: "<red>You don't have permission to do that."
@@ -8,32 +10,67 @@ no-target: "<red>Look at a lockable block within 5 blocks."
 not-lockable: "<red>That block can't be locked."
 not-locked: "<red>That block isn't locked."
 not-owner: "<red>Only the owner can do that."
+not-manager: "<red>Only the owner or a co-owner can do that."
 locked: "<green>Block locked."
+locked-restored: "<green>Block locked. Its co-owners and access list from before are back."
 auto-locked: "<gray>Block locked automatically. Use /unlock to remove the lock."
 already-locked-self: "<yellow>You already own the lock on this block."
 already-locked-other: "<red>This block is already locked by <owner>."
-unlocked: "<green>Lock removed."
+unlocked: "<green>Lock removed. Lock it again with /lock and its access list comes back."
 admin-unlocked: "<green>Removed <owner>'s lock."
 access-added: "<green><player> can now open this block."
 access-removed: "<green><player> can no longer open this block."
 access-already: "<yellow><player> already has access."
 access-missing: "<yellow><player> doesn't have access to this block."
-ownership-given: "<green><player> now owns this block."
+coowner-added: "<green><player> is now a co-owner of this block. They can open, break and manage it."
+coowner-removed: "<green><player> is no longer a co-owner of this block."
+coowner-already: "<yellow><player> is already a co-owner of this block."
+coowner-missing: "<yellow><player> isn't a co-owner of this block."
 cannot-target-self: "<red>You can't do that to yourself."
 unknown-player: "<red>No player named <player> has joined this server."
 denied-open: "<red>This block is locked by <owner>."
-denied-break: "<red>This block is locked by <owner>. Only the owner can break it."
+denied-break: "<red>This block is locked by <owner>. Only the owner or a co-owner can break it."
 denied-connect: "<red>You can't connect a chest to <owner>'s locked chest."
 info-owner: "<gold>Owner: <white><owner>"
+info-coowners: "<gold>Co-owners: <white><list>"
 info-access: "<gold>Access: <white><list>"
 info-none: "none"
-trusted: "<green><player> can now open all of your locks."
+trusted: "<green><player> can now open all of your locks, including ones you make later."
 untrusted: "<green><player> was removed from your trust list."
 trust-already: "<yellow>You already trust <player>."
 trust-missing: "<yellow>You don't trust <player>."
-trustlist: "<gold>Trusted players: <white><list>"
+trusted-owner: "<green><player> is now a co-owner of all your locks, including ones you make later."
+untrusted-owner: "<green><player> is no longer a co-owner of your locks."
+trust-owner-already: "<yellow><player> is already a co-owner of all your locks."
+trust-owner-missing: "<yellow><player> isn't a co-owner of your locks."
+trustlist: "<gold>Trusted (can open): <white><list>"
+trustlist-owners: "<gold>Co-owners (can manage): <white><list>"
 trustlist-empty: "<gray>You don't trust anyone yet."
 reloaded: "<green>Antitheft config and messages reloaded."
-usage-lock: "<red>Usage: /lock [add <player> | remove <player> | give <player> | admin-unlock]"
-usage-trust: "<red>Usage: /<command> <player>"
+usage-lock: "<red>Unknown /lock command. Type <yellow>/lock help</yellow> to see them all."
+usage-give: "<red>Usage: /lock give ownership [player]"
+usage-trust: "<red>Usage: /<command> [player] or /<command> ownership [player]"
 usage-antitheft: "<red>Usage: /antitheft reload"
+
+# /lock help. [player] means: type a player's name there.
+help: |-
+  <gold><bold>Antitheft help</bold></gold> <gray>- keep your chests safe</gray>
+  <gray>First <white>look at</white> a chest, barrel, furnace or other storage block, then type:</gray>
+  <yellow>/lock</yellow> <dark_gray>»</dark_gray> <white>Lock it. Only you can open or break it.</white>
+  <yellow>/unlock</yellow> <dark_gray>»</dark_gray> <white>Remove your lock.</white>
+  <yellow>/lockinfo</yellow> <dark_gray>»</dark_gray> <white>See who owns it.</white>
+  <gold>Share this one block:</gold>
+  <yellow>/lock add [player]</yellow> <dark_gray>»</dark_gray> <white>Let a friend open it.</white>
+  <yellow>/lock remove [player]</yellow> <dark_gray>»</dark_gray> <white>Stop them opening it.</white>
+  <yellow>/lock give ownership [player]</yellow> <dark_gray>»</dark_gray> <white>Make them a co-owner: they can open, break and manage it.</white>
+  <yellow>/lock remove ownership [player]</yellow> <dark_gray>»</dark_gray> <white>Remove a co-owner.</white>
+  <gold>Share all your blocks (also ones you lock later):</gold>
+  <yellow>/trust [player]</yellow> <dark_gray>»</dark_gray> <white>A friend can open all your locks.</white>
+  <yellow>/trust ownership [player]</yellow> <dark_gray>»</dark_gray> <white>A partner co-owns all your locks.</white>
+  <yellow>/untrust [player]</yellow> <gray>or</gray> <yellow>/untrust ownership [player]</yellow> <dark_gray>»</dark_gray> <white>Undo.</white>
+  <yellow>/trustlist</yellow> <dark_gray>»</dark_gray> <white>See who you trust.</white>
+  <gray>Tip: your own hoppers work with your locked chests.</gray>
+help-admin: |-
+  <red>Admin:</red>
+  <yellow>/lock admin-unlock</yellow> <dark_gray>»</dark_gray> <white>Remove anyone's lock.</white>
+  <yellow>/antitheft reload</yellow> <dark_gray>»</dark_gray> <white>Reload the config and messages.</white>

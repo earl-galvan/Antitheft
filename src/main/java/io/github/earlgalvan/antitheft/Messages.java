@@ -38,6 +38,12 @@ public final class Messages {
         to.sendMessage(mm.deserialize((prefix != null ? prefix : "") + text, TagResolver.resolver(placeholders)));
     }
 
+    /** Sends a message without the prefix (used for multi-line text such as /lock help). */
+    public void sendPlain(CommandSender to, String key) {
+        String text = raw(key);
+        if (!text.isEmpty()) to.sendMessage(mm.deserialize(text));
+    }
+
     public static TagResolver ph(String name, String value) {
         return Placeholder.unparsed(name, value);
     }

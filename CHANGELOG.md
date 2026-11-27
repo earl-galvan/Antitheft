@@ -2,6 +2,20 @@
 
 All notable changes to Antitheft. Versions follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 2026-11-27
+
+### Added
+- **Co-owners for one lock:** `/lock give ownership <player>` and `/lock remove ownership <player>`. A co-owner can open, break and `/unlock` the block and use `/lock add` / `/lock remove` on it. Only the owner adds or removes co-owners.
+- **Co-owners for all your locks:** `/trust ownership <player>` and `/untrust ownership <player>`. Covers every lock you have now and every lock you make later. `/trustlist` now lists co-owners too.
+- **`/lock help`:** every command explained in plain language. Admins also see the admin commands. The text is in `messages.yml` (`help`, `help-admin`).
+- `/lockinfo` shows co-owners to the owner, co-owners and admins.
+
+### Changed
+- **`/lock give <player>` is now `/lock give ownership <player>` and adds a co-owner instead of handing the lock over.** The old form shows the new usage and changes nothing.
+- **`/unlock` remembers the block's access list and co-owners.** When the same owner runs `/lock` on it again, they come back ("its co-owners and access list from before are back"). If someone else locks the block, they start with an empty list. `/lock admin-unlock` still removes everything.
+- Co-owners count as having access everywhere access matters, including hoppers they placed.
+- An unknown `/lock` subcommand now points to `/lock help`.
+
 ## [1.2.0] - 2026-11-27
 
 ### Added

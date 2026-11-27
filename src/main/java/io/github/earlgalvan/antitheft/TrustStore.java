@@ -12,20 +12,52 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Global trust lists. One file per player holds who they trust and who trusts them,
- * so an access check never needs the (possibly offline) owner's file.
- * All disk I/O runs on one background thread; the cache holds online players only.
+ * Global trust lists. Two kinds: {@link Kind#TRUST} (may open all of an owner's locks) and
+ * {@link Kind#OWNER} (co-owner of all of an owner's locks). Both cover locks made later too.
+ * One file per player holds both directions of both kinds, so a check never needs the (possibly
+ * offline) owner's file. All disk I/O runs on one background thread; the cache holds online players only.
  */
 public final class TrustStore {
 
-    private record Entry(Set<UUID> trusts, Set<UUID> trustedBy) {
+    /** The two global relations, with the YAML keys of their two directions. */
+    public enum Kind {
+        TRUST("trusts", "trusted-by", 0),
+        OWNER("co-owners", "co-owner-of", 2);
+
+        final String grantedKey, receivedKey;
+        final int index; // grants at index, receipts at index + 1
+
+        Kind(String grantedKey, String receivedKey, int index) {
+            this.grantedKey = grantedKey;
+            this.receivedKey = receivedKey;
+            this.index = index;
+        }
+    }
+
+    /** sets[k.index] = players this one granted k to; sets[k.index + 1] = players who granted k to this one. */
+    private record Entry(Set<UUID>[] sets) {
+        @SuppressWarnings("unchecked")
         static Entry empty() {
-            return new Entry(ConcurrentHashMap.newKeySet(), ConcurrentHashMap.newKeySet());
+            Set<UUID>[] s = new Set[4];
+            for (int i = 0; i < 4; i++) s[i] = ConcurrentHashMap.newKeySet();
+            return new Entry(s);
+        }
+
+        Set<UUID> granted(Kind k) {
+            return sets[k.index];
+        }
+
+        Set<UUID> received(Kind k) {
+            return sets[k.index + 1];
+        }
+
+        boolean isEmpty() {
+            for (Set<UUID> s : sets) if (!s.isEmpty()) return false;
+            return true;
         }
     }
 
@@ -69,29 +101,40 @@ public final class TrustStore {
         cache.remove(player);
     }
 
+    /** May {@code player} open all of {@code owner}'s locks? */
     public boolean isTrusted(UUID owner, UUID player) {
+        return has(Kind.TRUST, owner, player);
+    }
+
+    /** Is {@code player} a co-owner of all of {@code owner}'s locks? */
+    public boolean isCoOwner(UUID owner, UUID player) {
+        return has(Kind.OWNER, owner, player);
+    }
+
+    private boolean has(Kind k, UUID owner, UUID player) {
         // An online owner's own list is always current; use it when we have it.
         Entry o = cache.get(owner);
-        if (o != null) return o.trusts().contains(player);
+        if (o != null) return o.granted(k).contains(player);
         Entry p = cache.get(player);
-        return p != null && p.trustedBy().contains(owner);
+        return p != null && p.received(k).contains(owner);
     }
 
-    public Set<UUID> trustedBy(UUID owner) {
+    /** Players {@code owner} granted this kind to. The owner must be online. */
+    public Set<UUID> granted(Kind k, UUID owner) {
         Entry e = cache.get(owner);
-        return e == null ? Set.of() : Set.copyOf(e.trusts());
+        return e == null ? Set.of() : Set.copyOf(e.granted(k));
     }
 
-    /** Adds or removes trust. Returns false if nothing changed. The owner must be online. */
-    public boolean setTrust(UUID owner, UUID target, boolean add) {
+    /** Adds or removes a grant. Returns false if nothing changed. The owner must be online. */
+    public boolean set(Kind k, UUID owner, UUID target, boolean add) {
         Entry o = cache.get(owner);
         if (o == null) return false;
-        // The owner's cached list is changed only here, on the main thread.
-        if (!(add ? o.trusts().add(target) : o.trusts().remove(target))) return false;
+        // The owner's cached list is changed only here, on the caller's thread.
+        if (!(add ? o.granted(k).add(target) : o.granted(k).remove(target))) return false;
         io.execute(() -> {
-            edit(owner, Entry::trusts, target, add, false);
+            edit(owner, k, true, target, add, false);
             // The target's cached list is changed only on the I/O thread, in order with its login load.
-            edit(target, Entry::trustedBy, owner, add, true);
+            edit(target, k, false, owner, add, true);
         });
         return true;
     }
@@ -107,13 +150,13 @@ public final class TrustStore {
 
     // ---- I/O thread only ----
 
-    private void edit(UUID id, Function<Entry, Set<UUID>> field, UUID value, boolean add, boolean updateCache) {
+    private void edit(UUID id, Kind k, boolean grantedSide, UUID value, boolean add, boolean updateCache) {
         Entry onDisk = readEntry(id);
-        apply(field.apply(onDisk), value, add);
+        apply(grantedSide ? onDisk.granted(k) : onDisk.received(k), value, add);
         writeEntry(id, onDisk);
         if (updateCache) {
             Entry cached = cache.get(id);
-            if (cached != null) apply(field.apply(cached), value, add);
+            if (cached != null) apply(grantedSide ? cached.granted(k) : cached.received(k), value, add);
         }
     }
 
@@ -130,20 +173,24 @@ public final class TrustStore {
         File f = file(id);
         if (!f.exists()) return e;
         YamlConfiguration yml = YamlConfiguration.loadConfiguration(f);
-        for (String s : yml.getStringList("trusts")) e.trusts().add(UUID.fromString(s));
-        for (String s : yml.getStringList("trusted-by")) e.trustedBy().add(UUID.fromString(s));
+        for (Kind k : Kind.values()) {
+            for (String s : yml.getStringList(k.grantedKey)) e.granted(k).add(UUID.fromString(s));
+            for (String s : yml.getStringList(k.receivedKey)) e.received(k).add(UUID.fromString(s));
+        }
         return e;
     }
 
     private void writeEntry(UUID id, Entry e) {
         File f = file(id);
-        if (e.trusts().isEmpty() && e.trustedBy().isEmpty()) {
+        if (e.isEmpty()) {
             if (f.exists() && !f.delete()) log.warning("Could not delete " + f);
             return;
         }
         YamlConfiguration yml = new YamlConfiguration();
-        yml.set("trusts", toStrings(e.trusts()));
-        yml.set("trusted-by", toStrings(e.trustedBy()));
+        for (Kind k : Kind.values()) {
+            if (!e.granted(k).isEmpty()) yml.set(k.grantedKey, toStrings(e.granted(k)));
+            if (!e.received(k).isEmpty()) yml.set(k.receivedKey, toStrings(e.received(k)));
+        }
         try {
             dir.mkdirs();
             yml.save(f);

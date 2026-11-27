@@ -28,7 +28,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.List;
 import java.util.UUID;
 
 import static io.github.earlgalvan.antitheft.Messages.ph;
@@ -67,7 +66,7 @@ public final class ProtectionListener implements Listener {
         Lock lock = locks.read(e.getBlock());
         if (lock == null) return;
         Player p = e.getPlayer();
-        if (p.getUniqueId().equals(lock.owner()) || p.hasPermission(Locks.BYPASS)) return;
+        if (locks.canManage(p.getUniqueId(), lock) || p.hasPermission(Locks.BYPASS)) return; // owner or co-owner
         e.setCancelled(true);
         messages.send(p, "denied-break", ph("owner", AntitheftPlugin.nameOf(lock.owner())));
     }
@@ -76,7 +75,8 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onShulkerBroken(BlockBreakEvent e) {
         Block b = e.getBlock();
-        if (Tag.SHULKER_BOXES.isTagged(b.getType()) && locks.read(b) != null) locks.writeOne(b, null);
+        // also drops data remembered by /unlock
+        if (Tag.SHULKER_BOXES.isTagged(b.getType()) && locks.isLockable(b.getType())) locks.writeOne(b, null);
     }
 
     /** Fire would destroy flammable lockable blocks (lecterns, bookshelves, shelves) and their items. */
@@ -116,7 +116,7 @@ public final class ProtectionListener implements Listener {
             return;
         }
         if (plugin.autoLock() && p.hasPermission("antitheft.lock")) {
-            locks.write(b, new Lock(p.getUniqueId(), List.of())); // block entity exists when this event fires
+            locks.write(b, new Lock(p.getUniqueId())); // block entity exists when this event fires
             messages.send(p, "auto-locked");
         }
     }

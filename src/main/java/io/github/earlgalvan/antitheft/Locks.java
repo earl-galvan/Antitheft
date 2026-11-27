@@ -32,6 +32,8 @@ public final class Locks {
     private final NamespacedKey membersKey; // access list, comma-separated UUIDs (1.1.0+)
     private final NamespacedKey legacyAccessKey; // access list as written by 1.0.0
     private final NamespacedKey placerKey;
+    private final NamespacedKey coOwnersKey; // co-owners, comma-separated UUIDs (1.3.0+)
+    private final NamespacedKey previousOwnerKey; // set by /unlock so the same owner's re-lock restores access (1.3.0+)
     private final TrustStore trust;
     private volatile Set<Material> lockable = EnumSet.noneOf(Material.class);
 
@@ -40,6 +42,8 @@ public final class Locks {
         this.membersKey = new NamespacedKey(plugin, "members");
         this.legacyAccessKey = new NamespacedKey(plugin, "access");
         this.placerKey = new NamespacedKey(plugin, "placer");
+        this.coOwnersKey = new NamespacedKey(plugin, "coowners");
+        this.previousOwnerKey = new NamespacedKey(plugin, "previous-owner");
         this.trust = trust;
     }
 
@@ -81,24 +85,50 @@ public final class Locks {
     public Lock read(PersistentDataHolder holder) {
         PersistentDataContainer pdc = holder.getPersistentDataContainer();
         String owner = pdc.get(ownerKey, PersistentDataType.STRING);
-        if (owner == null) return null;
-        String members = pdc.get(membersKey, PersistentDataType.STRING);
-        List<String> raw;
-        if (members != null) {
-            raw = members.isEmpty() ? List.of() : Arrays.asList(members.split(","));
-        } else if (LEGACY_LIST != null && pdc.has(legacyAccessKey, LEGACY_LIST)) {
-            raw = pdc.get(legacyAccessKey, LEGACY_LIST);
-        } else {
-            raw = List.of();
+        return owner == null ? null : new Lock(UUID.fromString(owner), coOwners(pdc), access(pdc));
+    }
+
+    /**
+     * For /lock on an unlocked block: the co-owners and access list this player had on it before
+     * they /unlock-ed it, or null if they didn't (then the new lock starts empty).
+     */
+    public Lock remembered(Block block, UUID locker) {
+        for (Block b : new Block[]{block, partner(block)}) {
+            if (b == null || !(b.getState(false) instanceof TileState tile)) continue;
+            PersistentDataContainer pdc = tile.getPersistentDataContainer();
+            if (locker.toString().equals(pdc.get(previousOwnerKey, PersistentDataType.STRING))) {
+                return new Lock(locker, coOwners(pdc), access(pdc));
+            }
         }
-        List<UUID> access = new ArrayList<>(raw.size());
-        for (String s : raw) access.add(UUID.fromString(s));
-        return new Lock(UUID.fromString(owner), access);
+        return null;
+    }
+
+    private List<UUID> access(PersistentDataContainer pdc) {
+        String members = pdc.get(membersKey, PersistentDataType.STRING);
+        if (members != null) return uuids(members);
+        if (LEGACY_LIST != null && pdc.has(legacyAccessKey, LEGACY_LIST)) {
+            List<UUID> out = new ArrayList<>();
+            for (String s : pdc.get(legacyAccessKey, LEGACY_LIST)) out.add(UUID.fromString(s));
+            return out;
+        }
+        return List.of();
+    }
+
+    private List<UUID> coOwners(PersistentDataContainer pdc) {
+        String s = pdc.get(coOwnersKey, PersistentDataType.STRING);
+        return s == null ? List.of() : uuids(s);
+    }
+
+    private static List<UUID> uuids(String csv) {
+        if (csv.isEmpty()) return List.of();
+        List<UUID> out = new ArrayList<>();
+        for (String s : Arrays.asList(csv.split(","))) out.add(UUID.fromString(s));
+        return out;
     }
 
     // ---- writing ----
 
-    /** Writes the lock (or removes it when {@code lock} is null) on the block and its double-chest partner. */
+    /** Writes the lock (or removes all lock data when {@code lock} is null) on the block and its double-chest partner. */
     public void write(Block block, Lock lock) {
         writeOne(block, lock);
         Block partner = partner(block);
@@ -110,19 +140,39 @@ public final class Locks {
         if (!(block.getState() instanceof TileState tile)) return;
         PersistentDataContainer pdc = tile.getPersistentDataContainer();
         pdc.remove(legacyAccessKey); // rewritten in the new format below
+        pdc.remove(previousOwnerKey);
         if (lock == null) {
             pdc.remove(ownerKey);
             pdc.remove(membersKey);
+            pdc.remove(coOwnersKey);
         } else {
             pdc.set(ownerKey, PersistentDataType.STRING, lock.owner().toString());
-            if (lock.access().isEmpty()) {
-                pdc.remove(membersKey);
-            } else {
-                pdc.set(membersKey, PersistentDataType.STRING,
-                        String.join(",", lock.access().stream().map(UUID::toString).toList()));
-            }
+            setList(pdc, membersKey, lock.access());
+            setList(pdc, coOwnersKey, lock.coOwners());
         }
         tile.update(false, false);
+    }
+
+    /**
+     * /unlock: removes the lock but remembers its co-owners and access list on the block, so when the
+     * same owner locks it again they come back. A different player locking it starts fresh.
+     */
+    public void unlockRemembering(Block block, Lock lock) {
+        for (Block b : new Block[]{block, partner(block)}) {
+            if (b == null || !(b.getState() instanceof TileState tile)) continue;
+            PersistentDataContainer pdc = tile.getPersistentDataContainer();
+            pdc.remove(legacyAccessKey);
+            pdc.remove(ownerKey);
+            pdc.set(previousOwnerKey, PersistentDataType.STRING, lock.owner().toString());
+            setList(pdc, membersKey, lock.access());
+            setList(pdc, coOwnersKey, lock.coOwners());
+            tile.update(false, false);
+        }
+    }
+
+    private static void setList(PersistentDataContainer pdc, NamespacedKey key, List<UUID> ids) {
+        if (ids.isEmpty()) pdc.remove(key);
+        else pdc.set(key, PersistentDataType.STRING, String.join(",", ids.stream().map(UUID::toString).toList()));
     }
 
     @SuppressWarnings("unchecked")
@@ -137,8 +187,16 @@ public final class Locks {
 
     // ---- access ----
 
-    public boolean canAccess(UUID player, Lock lock) {
+    /** Owner powers on this lock: the owner, its co-owners, and the owner's global co-owners. */
+    public boolean canManage(UUID player, Lock lock) {
         return player.equals(lock.owner())
+                || lock.coOwners().contains(player)
+                || trust.isCoOwner(lock.owner(), player);
+    }
+
+    /** May open it: anyone who can manage it, its access list, and players the owner trusts. */
+    public boolean canAccess(UUID player, Lock lock) {
+        return canManage(player, lock)
                 || lock.access().contains(player)
                 || trust.isTrusted(lock.owner(), player);
     }

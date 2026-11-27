@@ -8,8 +8,8 @@ folia-supported: true
 
 commands:
   lock:
-    description: Lock the block you are looking at, or manage its access list.
-    usage: /lock [add <player> | remove <player> | give <player> | admin-unlock]
+    description: Lock the block you are looking at, or manage who can use it. /lock help lists everything.
+    usage: /lock [help | add <player> | remove <player> | give ownership <player> | remove ownership <player> | admin-unlock]
     permission: antitheft.lock
   unlock:
     description: Unlock the block you are looking at.
@@ -20,15 +20,15 @@ commands:
     usage: /lockinfo
     permission: antitheft.lockinfo
   trust:
-    description: Give a player access to all of your locks.
-    usage: /trust <player>
+    description: Let a player open (or, with ownership, co-own) all of your locks, including future ones.
+    usage: /trust [ownership] <player>
     permission: antitheft.trust
   untrust:
-    description: Remove a player from your global trust list.
-    usage: /untrust <player>
+    description: Remove a player from your trust or co-owner list.
+    usage: /untrust [ownership] <player>
     permission: antitheft.untrust
   trustlist:
-    description: List the players you trust.
+    description: List the players you trust and your global co-owners.
     usage: /trustlist
     permission: antitheft.trustlist
   antitheft:
@@ -38,7 +38,7 @@ commands:
 
 permissions:
   antitheft.lock:
-    description: Use /lock, /lock add, /lock remove and /lock give.
+    description: Use /lock, /lock help, /lock add, /lock remove and /lock give ownership.
     default: true
   antitheft.unlock:
     description: Use /unlock.
@@ -47,10 +47,10 @@ permissions:
     description: Use /lockinfo.
     default: true
   antitheft.trust:
-    description: Use /trust.
+    description: Use /trust and /trust ownership.
     default: true
   antitheft.untrust:
-    description: Use /untrust.
+    description: Use /untrust and /untrust ownership.
     default: true
   antitheft.trustlist:
     description: Use /trustlist.
