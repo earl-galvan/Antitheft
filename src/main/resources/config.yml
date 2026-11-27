@@ -5,8 +5,9 @@ auto-lock-on-place: false
 # Blocks that can be locked. Use Bukkit material names.
 # Names this server version does not know (e.g. COPPER_CHEST before 1.21.9) are skipped,
 # so one list works on every version from 1.18.2 to 26.x.
-# Note: a hopper only pulls items out of a locked block if the hopper itself is
-# locked by someone with access to that block. With auto-lock off, players /lock their own hoppers.
+# Hoppers: pushing items into a locked block always works. A hopper or hopper minecart may pull
+# items out of a locked block when the player who placed it (or the owner of the hopper's own lock)
+# has access to that block. Hoppers placed before Antitheft 1.2.0 need /lock once, or placing again.
 lockable-blocks:
   - CHEST
   - TRAPPED_CHEST

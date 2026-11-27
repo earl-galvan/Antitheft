@@ -72,6 +72,8 @@ public final class Commands implements TabExecutor {
             adminUnlock(p);
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("remove"))) {
             editAccess(p, args[1], args[0].equalsIgnoreCase("add"));
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+            giveOwnership(p, args[1]);
         } else {
             msg.send(p, "usage-lock");
         }
@@ -107,6 +109,23 @@ public final class Commands implements TabExecutor {
             locks.write(b, lock.withAccess(id, add));
             msg.send(p, add ? "access-added" : "access-removed", ph("player", shown));
         }
+    }
+
+    /** Hands the lock to another player. The new owner leaves the access list; the old owner keeps no access. */
+    private void giveOwnership(Player p, String targetName) {
+        Block b = target(p);
+        if (b == null) return;
+        Lock lock = ownedLock(p, b);
+        if (lock == null) return;
+        OfflinePlayer other = resolve(p, targetName);
+        if (other == null) return;
+        UUID id = other.getUniqueId();
+        if (id.equals(lock.owner())) {
+            msg.send(p, "cannot-target-self");
+            return;
+        }
+        locks.write(b, new Lock(id, lock.withAccess(id, false).access()));
+        msg.send(p, "ownership-given", ph("player", AntitheftPlugin.nameOf(id)));
     }
 
     private void adminUnlock(Player p) {
@@ -227,7 +246,7 @@ public final class Commands implements TabExecutor {
         if (name.equals("lock")) {
             if (args.length == 1) {
                 List<String> subs = sender.hasPermission("antitheft.adminunlock")
-                        ? List.of("add", "remove", "admin-unlock") : List.of("add", "remove");
+                        ? List.of("add", "remove", "give", "admin-unlock") : List.of("add", "remove", "give");
                 return filter(subs, args[0]);
             }
             if (args.length == 2 && !args[0].equalsIgnoreCase("admin-unlock")) return null; // online names

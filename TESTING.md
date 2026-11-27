@@ -1,12 +1,12 @@
-# Antitheft 1.1.1: in-game test checklist
+# Antitheft 1.2.0: in-game test checklist
 
 Two players on your own server. **A** is the owner (not op). **B** is the other player (not op). Use `/op` only where a step says so.
 
 **Supported servers:** Paper 1.18.2 – 26.3, and Paper forks such as Purpur and Folia. Java 17 or newer (whatever your Minecraft version needs). Spigot and CraftBukkit are not supported; on them the plugin disables itself with a clear message.
 
 ## Setup
-1. Put `antitheft-1.1.1.jar` in `plugins/` and start the server. The console shows `Enabling Antitheft v1.1.1` and `N lockable block types loaded.`. On versions older than 26.3 it also lists the blocks that don't exist yet on that version (`Not on this Minecraft version, skipped: ...`). That is normal. On 1.21.9+ it also says `Copper golem protection enabled.`
-2. **Upgrading from an older version:** your old `plugins/Antitheft/config.yml` is kept. To match 1.1.1, set `auto-lock-on-place: false` there and add `- JUKEBOX` to `lockable-blocks`, then run `/antitheft reload`. Existing locks and access lists keep working.
+1. Put `antitheft-1.2.0.jar` in `plugins/` and start the server. The console shows `Enabling Antitheft v1.2.0` and `N lockable block types loaded.`. On versions older than 26.3 it also lists the blocks that don't exist yet on that version (`Not on this Minecraft version, skipped: ...`). That is normal. On 1.21.9+ it also says `Copper golem protection enabled.`
+2. **Upgrading from an older version:** your old `plugins/Antitheft/config.yml` and `messages.yml` are kept. To match 1.2.0, set `auto-lock-on-place: false` there and add `- JUKEBOX` to `lockable-blocks`, then run `/antitheft reload`. Existing locks and access lists keep working.
 3. Both players join once. Give them the items (console, without the `/`):
 ```
 give A chest 8
@@ -49,6 +49,7 @@ On 1.21.9+ also: `give A copper_chest 4`, `give A carved_pumpkin 1`, `give A cop
 - [ ] **10. Add.** A looks at the chest and runs `/lock add B`. B can open it. `/lockinfo` (as A) shows `Access: B`.
 - [ ] **11. Remove.** A runs `/lock remove B`. B is denied again.
 - [ ] **12. Only that block.** While B has access to the chest (step 10), B is still denied at A's other locked blocks.
+- [ ] **12b. Give away.** A locks a barrel and runs `/lock give B` on it → "B now owns this block". B can open and break it; A is denied. B's `/lockinfo` shows `Owner: B`.
 
 ### Global trust
 - [ ] **13. Trust.** A runs `/trust B`. B can open all of A's locks. `/trustlist` (as A) shows B.
@@ -62,10 +63,10 @@ On 1.21.9+ also: `give A copper_chest 4`, `give A carved_pumpkin 1`, `give A cop
 
 ### Hoppers
 Put 32 cobblestone in A's chest (locked with `/lock`), on a block 1 high. Break the block under it so the space under the chest is free.
-- [ ] **19. B's hopper.** B places a stone next to the free space and places a hopper against that stone, so the hopper ends up under A's chest → no items move (whether B locks the hopper or not).
+- [ ] **19. B's hopper.** B places a stone next to the free space and places a hopper against that stone, so the hopper ends up under A's chest → no items move.
 - [ ] **20. B's hopper minecart.** B places a rail under A's chest and puts a hopper minecart on it → no items move.
-- [ ] **21. A's own hopper.** A places a hopper under their own chest. Nothing moves until A runs `/lock` on the hopper; then items move into it.
-- [ ] **22. Pushing in is allowed.** B's hopper pointing *into* A's chest from the side still delivers items.
+- [ ] **21. A's own hopper, no `/lock`.** A places a hopper under their own locked chest → items move into it straight away. A's hopper minecart does the same.
+- [ ] **22. Hopper chains and pushing in.** A's hopper under the chest points into a second chest that A locked → items flow from the first locked chest, through the hopper, into the second locked chest. B's hopper pointing *into* A's chest from the side also delivers items.
 
 ### Explosions and fire
 - [ ] **23. TNT.** Put A's locked chest and an unlocked chest next to TNT and light it. The locked chest survives; the unlocked one is destroyed.

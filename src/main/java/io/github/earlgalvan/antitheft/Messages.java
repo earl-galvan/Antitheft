@@ -7,6 +7,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 /** Messages from messages.yml, in MiniMessage format. */
 public final class Messages {
@@ -14,18 +17,25 @@ public final class Messages {
     private final MiniMessage mm = MiniMessage.miniMessage();
     private volatile YamlConfiguration yml = new YamlConfiguration();
 
-    public void load(File file) {
-        yml = YamlConfiguration.loadConfiguration(file);
+    /** Loads the server's file; keys it lacks (e.g. added in a newer version) come from the bundled defaults. */
+    public void load(File file, InputStream bundled) {
+        YamlConfiguration loaded = YamlConfiguration.loadConfiguration(file);
+        if (bundled != null) {
+            loaded.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(bundled, StandardCharsets.UTF_8)));
+        }
+        yml = loaded;
     }
 
     public String raw(String key) {
-        return yml.getString(key, key);
+        String text = yml.getString(key); // one-argument form falls back to the defaults
+        return text != null ? text : key;
     }
 
     public void send(CommandSender to, String key, TagResolver... placeholders) {
-        String text = yml.getString(key, key);
+        String text = raw(key);
         if (text.isEmpty()) return;
-        to.sendMessage(mm.deserialize(yml.getString("prefix", "") + text, TagResolver.resolver(placeholders)));
+        String prefix = yml.getString("prefix");
+        to.sendMessage(mm.deserialize((prefix != null ? prefix : "") + text, TagResolver.resolver(placeholders)));
     }
 
     public static TagResolver ph(String name, String value) {

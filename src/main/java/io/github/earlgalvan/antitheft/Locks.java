@@ -51,9 +51,15 @@ public final class Locks {
         return lockable.contains(material);
     }
 
-    /** Hopper minecart placer, stored on the entity. */
+    /** Who placed a hopper (block PDC) or a hopper minecart (entity PDC). */
     public NamespacedKey placerKey() {
         return placerKey;
+    }
+
+    /** The player who placed this hopper or hopper minecart, or null (placed before 1.2.0, or not by a player). */
+    public UUID placer(PersistentDataHolder holder) {
+        String s = holder.getPersistentDataContainer().get(placerKey, PersistentDataType.STRING);
+        return s == null ? null : UUID.fromString(s);
     }
 
     // ---- reading ----

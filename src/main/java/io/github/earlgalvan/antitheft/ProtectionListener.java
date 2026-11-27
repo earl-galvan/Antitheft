@@ -1,5 +1,6 @@
 package io.github.earlgalvan.antitheft;
 
+import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.block.DoubleChest;
@@ -99,8 +100,9 @@ public final class ProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent e) {
         Block b = e.getBlockPlaced();
-        if (!locks.isLockable(b.getType())) return;
         Player p = e.getPlayer();
+        if (b.getType() == Material.HOPPER) recordPlacer(b, p);
+        if (!locks.isLockable(b.getType())) return;
 
         Block partner = locks.partner(b);
         Lock partnerLock = partner == null ? null : locks.read(partner);
@@ -119,6 +121,13 @@ public final class ProtectionListener implements Listener {
         }
     }
 
+    /** Remembers who placed a hopper, so a player's own hoppers work with their locked blocks without /lock. */
+    private void recordPlacer(Block hopper, Player p) {
+        if (!(hopper.getState() instanceof TileState tile)) return; // block entity exists when this event fires
+        tile.getPersistentDataContainer().set(locks.placerKey(), PersistentDataType.STRING, p.getUniqueId().toString());
+        tile.update(false, false);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityPlace(EntityPlaceEvent e) {
         if (e.getEntity() instanceof HopperMinecart cart && e.getPlayer() != null) {
@@ -129,10 +138,14 @@ public final class ProtectionListener implements Listener {
 
     // ---- hoppers (hot path) ----
 
+    /**
+     * Only pulls out of a locked block are checked; pushing items into a locked block is always allowed.
+     * A pull is allowed when the hopper's owner (its lock owner, otherwise whoever placed it) has access.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMove(InventoryMoveItemEvent e) {
         Inventory dest = e.getDestination();
-        if (!dest.equals(e.getInitiator())) return; // only pulls matter; pushes into a lock are allowed
+        if (!dest.equals(e.getInitiator())) return; // a push, not a pull
         Lock lock = lockOf(e.getSource().getHolder(false));
         if (lock == null) return;
         UUID puller = pullerOf(dest.getHolder(false));
@@ -145,15 +158,13 @@ public final class ProtectionListener implements Listener {
         return null;
     }
 
+    /** Whose hopper this is: the owner of its lock, otherwise the player who placed it. */
     private UUID pullerOf(InventoryHolder holder) {
         if (holder instanceof TileState tile) {
             Lock l = locks.read(tile);
-            return l == null ? null : l.owner();
+            return l != null ? l.owner() : locks.placer(tile);
         }
-        if (holder instanceof HopperMinecart cart) {
-            String s = cart.getPersistentDataContainer().get(locks.placerKey(), PersistentDataType.STRING);
-            return s == null ? null : UUID.fromString(s);
-        }
+        if (holder instanceof HopperMinecart cart) return locks.placer(cart);
         return null;
     }
 

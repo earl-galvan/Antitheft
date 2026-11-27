@@ -59,7 +59,11 @@ public final class AntitheftPlugin extends JavaPlugin {
 
     public void reloadAll() {
         reloadConfig();
-        messages.load(new File(getDataFolder(), "messages.yml"));
+        try (var bundled = getResource("messages.yml")) {
+            messages.load(new File(getDataFolder(), "messages.yml"), bundled);
+        } catch (java.io.IOException e) {
+            getLogger().warning("Could not read the bundled messages.yml: " + e.getMessage());
+        }
         autoLock = getConfig().getBoolean("auto-lock-on-place", false);
 
         Set<Material> lockable = EnumSet.noneOf(Material.class);

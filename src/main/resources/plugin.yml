@@ -9,7 +9,7 @@ folia-supported: true
 commands:
   lock:
     description: Lock the block you are looking at, or manage its access list.
-    usage: /lock [add <player> | remove <player> | admin-unlock]
+    usage: /lock [add <player> | remove <player> | give <player> | admin-unlock]
     permission: antitheft.lock
   unlock:
     description: Unlock the block you are looking at.
@@ -38,7 +38,7 @@ commands:
 
 permissions:
   antitheft.lock:
-    description: Use /lock, /lock add and /lock remove.
+    description: Use /lock, /lock add, /lock remove and /lock give.
     default: true
   antitheft.unlock:
     description: Use /unlock.
